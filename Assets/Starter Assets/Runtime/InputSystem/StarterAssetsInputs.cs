@@ -21,7 +21,13 @@ namespace StarterAssets
         public bool cursorLocked = false;
         public bool cursorInputForLook = false;
 
+        private void Start()
+        {
+            UnlockCursor();
+        }
+
 #if ENABLE_INPUT_SYSTEM
+
         public void OnMove(InputValue value)
         {
             MoveInput(value.Get<Vector2>());
@@ -29,7 +35,8 @@ namespace StarterAssets
 
         public void OnLook(InputValue value)
         {
-            if (cursorInputForLook)
+            if (cursorInputForLook &&
+                Cursor.lockState == CursorLockMode.Locked)
             {
                 LookInput(value.Get<Vector2>());
             }
@@ -47,25 +54,24 @@ namespace StarterAssets
 
         private void Update()
         {
-            // Click the Game View -> activate Mouse movement
-            if (!cursorLocked && Mouse.current.leftButton.wasPressedThisFrame)
+            // Escape -> release Cursor
+            if (cursorLocked &&
+                Keyboard.current != null &&
+                Keyboard.current.escapeKey.wasPressedThisFrame)
             {
-                cursorLocked = true;
-                cursorInputForLook = true;
-                SetCursorState(true);
+                UnlockCursor();
+                return;
             }
 
-            // Escape -> deactivate Mouse movement
-            if (cursorLocked && Keyboard.current.escapeKey.wasPressedThisFrame)
+            // Left CLick -> lock Cursor
+            if (!cursorLocked &&
+                Mouse.current != null &&
+                Mouse.current.leftButton.wasPressedThisFrame)
             {
-                cursorLocked = false;
-                cursorInputForLook = false;
-
-                LookInput(Vector2.zero);
-
-                SetCursorState(false);
+                LockCursor();
             }
         }
+
 #endif
 
         public void MoveInput(Vector2 newMoveDirection)
@@ -88,16 +94,32 @@ namespace StarterAssets
             sprint = newSprintState;
         }
 
-        private void OnApplicationFocus(bool hasFocus)
+        private void LockCursor()
         {
-            SetCursorState(cursorLocked);
+            cursorLocked = true;
+            cursorInputForLook = true;
+
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+
+            Debug.Log(
+                $"LOCK -> state={Cursor.lockState}, visible={Cursor.visible}"
+            );
         }
 
-        private void SetCursorState(bool newState)
+        private void UnlockCursor()
         {
-            Cursor.lockState = newState
-                ? CursorLockMode.Locked
-                : CursorLockMode.None;
+            cursorLocked = false;
+            cursorInputForLook = false;
+
+            LookInput(Vector2.zero);
+
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+
+            Debug.Log(
+                $"UNLOCK -> state={Cursor.lockState}, visible={Cursor.visible}"
+            );
         }
     }
 }
